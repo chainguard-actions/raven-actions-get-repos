@@ -1,0 +1,48 @@
+name: Test flat format output
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          owner: octocat
+          format: flat
+          delimiter: ","
+          matrix-use: "false"
+          github-token: ${{ github.token }}
+      - name: Assert format output is flat
+        env:
+          ACTUAL: ${{ steps.action.outputs.format }}
+        run: |
+          echo "actual format: $ACTUAL"
+          if [ "$ACTUAL" != "flat" ]; then
+            echo "FAIL: expected format to be 'flat', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: format is flat"
+      - name: Assert count output is a number
+        env:
+          ACTUAL: ${{ steps.action.outputs.count }}
+        run: |
+          echo "actual count: $ACTUAL"
+          if ! echo "$ACTUAL" | grep -qE '^[0-9]+$'; then
+            echo "FAIL: expected count to be a number, got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: count is a number: $ACTUAL"
+      - name: Assert repos output is not a JSON array (flat format)
+        env:
+          ACTUAL: ${{ steps.action.outputs.repos }}
+        run: |
+          echo "actual repos: $ACTUAL"
+          # In flat format, repos should be a string (not a JSON array starting with '[')
+          # It could be empty if no repos found, or a comma-separated string
+          if echo "$ACTUAL" | python3 -c "import sys, json; data = json.load(sys.stdin); assert isinstance(data, list)" 2>/dev/null; then
+            echo "FAIL: expected repos to be flat string, not a JSON array"
+            exit 1
+          fi
+          echo "PASS: repos is in flat format (not a JSON array)"
