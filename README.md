@@ -1,6 +1,6 @@
 # raven-actions/get-repos
 
-Get organization or user repos based on the topics filter
+🗄️ Get organization or user repos based on the topics filter (with logic AND/OR) to use in the matrix job or another action.
 
 Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/raven-actions/get-repos](https://github.com/raven-actions/get-repos).
 
@@ -9,6 +9,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
 | v1.0.0 | [`v1.0.0`](https://github.com/chainguard-actions/raven-actions-get-repos/tree/v1.0.0) | [`a0fdd5c`](https://github.com/raven-actions/get-repos/commit/a0fdd5cc3c70f5180b3f3361c4cd29b5d387b9b1) |
+| v1.0.1 | [`v1.0.1`](https://github.com/chainguard-actions/raven-actions-get-repos/tree/v1.0.1) | [`6954705`](https://github.com/raven-actions/get-repos/commit/6954705246e73ca01f3db67cb4e38e6422ffde87) |
 
 ## Privacy
 
