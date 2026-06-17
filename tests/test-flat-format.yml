@@ -1,0 +1,51 @@
+name: Test flat format output
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          owner: octocat
+          matrix-use: "false"
+          format: flat
+          delimiter: ","
+      - name: Assert format output is flat
+        env:
+          FORMAT: ${{ steps.action.outputs.format }}
+        run: |
+          echo "format: $FORMAT"
+          if [ "$FORMAT" != "flat" ]; then
+            echo "FAIL: expected format 'flat', got '$FORMAT'"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert count output is a number
+        env:
+          COUNT: ${{ steps.action.outputs.count }}
+        run: |
+          echo "count: $COUNT"
+          if ! echo "$COUNT" | grep -qE '^[0-9]+$'; then
+            echo "FAIL: count is not a number: $COUNT"
+            exit 1
+          fi
+          echo "PASS: count=$COUNT"
+      - name: Assert repos output is flat (no JSON brackets)
+        env:
+          REPOS: ${{ steps.action.outputs.repos }}
+          COUNT: ${{ steps.action.outputs.count }}
+        run: |
+          echo "repos: $REPOS"
+          # If count > 0, repos should not start with '[' (not JSON array)
+          if [ "$COUNT" -gt "0" ]; then
+            if echo "$REPOS" | grep -q '^\['; then
+              echo "FAIL: repos output looks like JSON array, expected flat format"
+              exit 1
+            fi
+            echo "PASS: repos is in flat format"
+          else
+            echo "PASS: no repos found, skipping format check"
+          fi
