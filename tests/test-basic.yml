@@ -1,0 +1,54 @@
+name: Test basic usage - get repos without topic filter
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          owner: actions
+          matrix-use: "false"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Assert count is a non-negative integer
+        env:
+          COUNT: ${{ steps.action.outputs.count }}
+        run: |
+          echo "count: $COUNT"
+          if ! echo "$COUNT" | grep -qE '^[0-9]+$'; then
+            echo "FAIL: count is not a non-negative integer: '$COUNT'"
+            exit 1
+          fi
+          if [ "$COUNT" -lt 1 ]; then
+            echo "FAIL: expected at least 1 repo for 'actions' org, got $COUNT"
+            exit 1
+          fi
+          echo "PASS: count=$COUNT"
+      - name: Assert repos output is a JSON array
+        env:
+          REPOS: ${{ steps.action.outputs.repos }}
+        run: |
+          echo "repos (first 200 chars): ${REPOS:0:200}"
+          # Should be a JSON array
+          if ! echo "$REPOS" | python3 -c "import sys, json; data = json.load(sys.stdin); assert isinstance(data, list)" 2>/dev/null; then
+            echo "FAIL: repos output is not a valid JSON array"
+            exit 1
+          fi
+          echo "PASS: repos is a valid JSON array"
+      - name: Assert repos contain expected fields
+        env:
+          REPOS: ${{ steps.action.outputs.repos }}
+        run: |
+          # Check that the first element has expected fields
+          FIRST=$(echo "$REPOS" | python3 -c "import sys, json; data = json.load(sys.stdin); print(json.dumps(data[0]))" 2>/dev/null)
+          echo "first repo: $FIRST"
+          for field in owner name full_name private html_url fork archived disabled is_template visibility default_branch; do
+            if ! echo "$FIRST" | python3 -c "import sys, json; data = json.load(sys.stdin); assert '$field' in data" 2>/dev/null; then
+              echo "FAIL: field '$field' not found in first repo"
+              exit 1
+            fi
+          done
+          echo "PASS: all expected fields present"

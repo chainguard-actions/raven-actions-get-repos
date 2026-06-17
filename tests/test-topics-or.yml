@@ -1,0 +1,49 @@
+name: Test topics filter with OR operator
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          owner: actions
+          topics: "github-actions"
+          operator: OR
+          matrix-use: "false"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Assert count is a non-negative integer
+        env:
+          COUNT: ${{ steps.action.outputs.count }}
+        run: |
+          echo "count: $COUNT"
+          if ! echo "$COUNT" | grep -qE '^[0-9]+$'; then
+            echo "FAIL: count is not a non-negative integer: '$COUNT'"
+            exit 1
+          fi
+          echo "PASS: count=$COUNT"
+      - name: Assert repos output is a JSON array
+        env:
+          REPOS: ${{ steps.action.outputs.repos }}
+        run: |
+          echo "repos (first 200 chars): ${REPOS:0:200}"
+          if ! echo "$REPOS" | python3 -c "import sys, json; data = json.load(sys.stdin); assert isinstance(data, list)" 2>/dev/null; then
+            echo "FAIL: repos output is not a valid JSON array"
+            exit 1
+          fi
+          echo "PASS: repos is a valid JSON array"
+      - name: Assert count matches repos array length
+        env:
+          COUNT: ${{ steps.action.outputs.count }}
+          REPOS: ${{ steps.action.outputs.repos }}
+        run: |
+          ARRAY_LEN=$(echo "$REPOS" | python3 -c "import sys, json; data = json.load(sys.stdin); print(len(data))" 2>/dev/null)
+          echo "count output: $COUNT, array length: $ARRAY_LEN"
+          if [ "$COUNT" != "$ARRAY_LEN" ]; then
+            echo "FAIL: count ($COUNT) does not match repos array length ($ARRAY_LEN)"
+            exit 1
+          fi
+          echo "PASS: count matches array length"
