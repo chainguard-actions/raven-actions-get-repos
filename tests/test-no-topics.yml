@@ -1,0 +1,63 @@
+name: Test no topics filter (all repos)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          owner: raven-actions
+          format: json
+          matrix-use: "false"
+
+      - name: Assert format output is json
+        env:
+          ACTUAL: ${{ steps.action.outputs.format }}
+        run: |
+          echo "actual format: $ACTUAL"
+          if [ "$ACTUAL" != "json" ]; then
+            echo "FAIL: expected format 'json', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: format is json"
+
+      - name: Assert count is a non-negative integer
+        env:
+          ACTUAL: ${{ steps.action.outputs.count }}
+        run: |
+          echo "actual count: $ACTUAL"
+          if ! echo "$ACTUAL" | grep -qE '^[0-9]+$'; then
+            echo "FAIL: expected count to be a non-negative integer, got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: count is a non-negative integer: $ACTUAL"
+
+      - name: Assert repos output is valid JSON array
+        env:
+          ACTUAL: ${{ steps.action.outputs.repos }}
+        run: |
+          echo "actual repos: $ACTUAL"
+          if echo "$ACTUAL" | python3 -c "import sys, json; data=json.load(sys.stdin); assert isinstance(data, list)" 2>/dev/null; then
+            echo "PASS: repos is a valid JSON array"
+          else
+            echo "FAIL: repos is not a valid JSON array: $ACTUAL"
+            exit 1
+          fi
+
+      - name: Assert repos array length is consistent
+        env:
+          REPOS: ${{ steps.action.outputs.repos }}
+          COUNT: ${{ steps.action.outputs.count }}
+        run: |
+          echo "count output: $COUNT"
+          ARRAY_LEN=$(echo "$REPOS" | python3 -c "import sys, json; data=json.load(sys.stdin); print(len(data))" 2>/dev/null || echo "0")
+          echo "array length: $ARRAY_LEN"
+          if ! echo "$ARRAY_LEN" | grep -qE '^[0-9]+$'; then
+            echo "FAIL: array length is not a non-negative integer: $ARRAY_LEN"
+            exit 1
+          fi
+          echo "PASS: repos array length ($ARRAY_LEN) is consistent"

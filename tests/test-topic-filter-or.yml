@@ -1,4 +1,4 @@
-name: Test flat output format
+name: Test topic filter with OR operator
 on:
   workflow_dispatch:
 jobs:
@@ -11,20 +11,21 @@ jobs:
         uses: .
         with:
           owner: raven-actions
-          format: flat
-          delimiter: ","
+          topics: "github-actions,action"
+          operator: OR
+          format: json
           matrix-use: "false"
 
-      - name: Assert format output is flat
+      - name: Assert format output is json
         env:
           ACTUAL: ${{ steps.action.outputs.format }}
         run: |
           echo "actual format: $ACTUAL"
-          if [ "$ACTUAL" != "flat" ]; then
-            echo "FAIL: expected format 'flat', got '$ACTUAL'"
+          if [ "$ACTUAL" != "json" ]; then
+            echo "FAIL: expected format 'json', got '$ACTUAL'"
             exit 1
           fi
-          echo "PASS: format is flat"
+          echo "PASS: format is json"
 
       - name: Assert count is a non-negative integer
         env:
@@ -37,19 +38,14 @@ jobs:
           fi
           echo "PASS: count is a non-negative integer: $ACTUAL"
 
-      - name: Assert repos output is a flat string when flat format
+      - name: Assert repos output is valid JSON array
         env:
           ACTUAL: ${{ steps.action.outputs.repos }}
-          COUNT: ${{ steps.action.outputs.count }}
         run: |
           echo "actual repos: $ACTUAL"
-          echo "count: $COUNT"
-          if [ "$COUNT" = "0" ]; then
-            echo "PASS: no repos found, output is empty as expected"
+          if echo "$ACTUAL" | python3 -c "import sys, json; data=json.load(sys.stdin); assert isinstance(data, list)" 2>/dev/null; then
+            echo "PASS: repos is a valid JSON array"
           else
-            if echo "$ACTUAL" | grep -q '^\['; then
-              echo "FAIL: flat format should not produce a JSON array"
-              exit 1
-            fi
-            echo "PASS: repos is a flat string (not a JSON array)"
+            echo "FAIL: repos is not a valid JSON array: $ACTUAL"
+            exit 1
           fi
