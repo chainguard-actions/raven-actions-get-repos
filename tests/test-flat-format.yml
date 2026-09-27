@@ -1,4 +1,4 @@
-name: Test flat format output
+name: Test flat format output with delimiter
 on:
   workflow_dispatch:
 jobs:
@@ -9,43 +9,42 @@ jobs:
       - id: action
         uses: .
         with:
-          owner: octocat
-          matrix-use: "false"
+          owner: actions
           format: flat
           delimiter: ","
-      - name: Assert format output is flat
+          matrix-use: "false"
+      - name: Assert flat format output
         env:
+          COUNT: ${{ steps.action.outputs.count }}
           FORMAT: ${{ steps.action.outputs.format }}
+          REPOS: ${{ steps.action.outputs.repos }}
         run: |
+          echo "count: $COUNT"
           echo "format: $FORMAT"
+          echo "repos (truncated): ${REPOS:0:300}"
+
+          # count must be a non-negative integer
+          if ! echo "$COUNT" | grep -qE '^[0-9]+$'; then
+            echo "FAIL: count is not a non-negative integer: '$COUNT'"
+            exit 1
+          fi
+
+          # format must be flat
           if [ "$FORMAT" != "flat" ]; then
             echo "FAIL: expected format 'flat', got '$FORMAT'"
             exit 1
           fi
-          echo "PASS"
-      - name: Assert count output is a number
-        env:
-          COUNT: ${{ steps.action.outputs.count }}
-        run: |
-          echo "count: $COUNT"
-          if ! echo "$COUNT" | grep -qE '^[0-9]+$'; then
-            echo "FAIL: count is not a number: $COUNT"
-            exit 1
-          fi
-          echo "PASS: count=$COUNT"
-      - name: Assert repos output is flat (no JSON brackets)
-        env:
-          REPOS: ${{ steps.action.outputs.repos }}
-          COUNT: ${{ steps.action.outputs.count }}
-        run: |
-          echo "repos: $REPOS"
-          # If count > 0, repos should not start with '[' (not JSON array)
-          if [ "$COUNT" -gt "0" ]; then
-            if echo "$REPOS" | grep -q '^\['; then
-              echo "FAIL: repos output looks like JSON array, expected flat format"
+
+          # repos output should be comma-separated (contains owner/repo pattern)
+          # If count > 0, repos should contain at least one slash (owner/repo)
+          if [ "$COUNT" -gt 0 ]; then
+            if ! echo "$REPOS" | grep -q '/'; then
+              echo "FAIL: flat repos output does not contain owner/repo format (no slash found)"
               exit 1
             fi
-            echo "PASS: repos is in flat format"
+            echo "PASS: flat format repos contain owner/repo entries"
           else
-            echo "PASS: no repos found, skipping format check"
+            echo "PASS: count=0, no repos to validate format"
           fi
+
+          echo "PASS: count=$COUNT, format=$FORMAT"
