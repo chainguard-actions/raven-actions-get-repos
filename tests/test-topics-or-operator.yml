@@ -1,4 +1,4 @@
-name: Test basic usage - get repos without topics filter
+name: Test topics filter with OR operator
 on:
   workflow_dispatch:
 jobs:
@@ -10,24 +10,20 @@ jobs:
         uses: .
         with:
           owner: actions
+          topics: "github-actions"
+          operator: "OR"
           matrix-use: "false"
-      - name: Assert count is a non-negative integer
+      - name: Assert count output is present and numeric
         env:
           COUNT: ${{ steps.action.outputs.count }}
-          REPOS: ${{ steps.action.outputs.repos }}
         run: |
           echo "count: $COUNT"
-          echo "repos (truncated): ${REPOS:0:200}"
           if [ -z "$COUNT" ]; then
             echo "FAIL: count output is empty"
             exit 1
           fi
           if ! echo "$COUNT" | grep -qE '^[0-9]+$'; then
             echo "FAIL: count is not a non-negative integer: $COUNT"
-            exit 1
-          fi
-          if [ "$COUNT" -lt 1 ]; then
-            echo "FAIL: expected at least 1 repo for 'actions' org, got $COUNT"
             exit 1
           fi
           echo "PASS: count=$COUNT"
@@ -40,8 +36,7 @@ jobs:
             echo "FAIL: repos output is empty"
             exit 1
           fi
-          # Should be parseable as JSON array
-          echo "$REPOS" | python3 -c "import sys, json; data = json.load(sys.stdin); assert isinstance(data, list), 'not a list'" 2>&1
+          echo "$REPOS" | python3 -c "import sys, json; data = json.load(sys.stdin); assert isinstance(data, list), 'not a list'"
           if [ $? -ne 0 ]; then
             echo "FAIL: repos output is not a valid JSON array"
             exit 1

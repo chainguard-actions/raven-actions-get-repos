@@ -1,0 +1,64 @@
+name: Test topics filter with AND operator (default)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          owner: actions
+          topics: "github-actions"
+          operator: "AND"
+          matrix-use: "false"
+      - name: Assert count output is present and numeric
+        env:
+          COUNT: ${{ steps.action.outputs.count }}
+        run: |
+          echo "count: $COUNT"
+          if [ -z "$COUNT" ]; then
+            echo "FAIL: count output is empty"
+            exit 1
+          fi
+          if ! echo "$COUNT" | grep -qE '^[0-9]+$'; then
+            echo "FAIL: count is not a non-negative integer: $COUNT"
+            exit 1
+          fi
+          echo "PASS: count=$COUNT"
+      - name: Assert repos output is a valid JSON array
+        env:
+          REPOS: ${{ steps.action.outputs.repos }}
+        run: |
+          echo "repos (truncated): ${REPOS:0:300}"
+          if [ -z "$REPOS" ]; then
+            echo "FAIL: repos output is empty"
+            exit 1
+          fi
+          echo "$REPOS" | python3 -c "import sys, json; data = json.load(sys.stdin); assert isinstance(data, list), 'not a list'"
+          if [ $? -ne 0 ]; then
+            echo "FAIL: repos output is not a valid JSON array"
+            exit 1
+          fi
+          echo "PASS: repos is a valid JSON array"
+      - name: Assert repos have expected fields
+        env:
+          REPOS: ${{ steps.action.outputs.repos }}
+          COUNT: ${{ steps.action.outputs.count }}
+        run: |
+          echo "count: $COUNT"
+          if [ "$COUNT" -gt 0 ]; then
+            # Check that the first repo has expected fields
+            FIRST_OWNER=$(echo "$REPOS" | python3 -c "import sys, json; data = json.load(sys.stdin); print(data[0]['owner']) if data else print('')")
+            FIRST_NAME=$(echo "$REPOS" | python3 -c "import sys, json; data = json.load(sys.stdin); print(data[0]['name']) if data else print('')")
+            echo "first repo owner: $FIRST_OWNER"
+            echo "first repo name: $FIRST_NAME"
+            if [ -z "$FIRST_OWNER" ] || [ -z "$FIRST_NAME" ]; then
+              echo "FAIL: first repo is missing owner or name fields"
+              exit 1
+            fi
+            echo "PASS: repos have expected fields"
+          else
+            echo "PASS: no repos found (count=0), skipping field check"
+          fi

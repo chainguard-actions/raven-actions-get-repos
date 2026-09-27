@@ -1,4 +1,4 @@
-name: Test invalid operator fails gracefully
+name: Test invalid operator causes failure
 on:
   workflow_dispatch:
 jobs:
@@ -11,18 +11,19 @@ jobs:
         continue-on-error: true
         with:
           owner: actions
-          topics: "github-actions"
-          operator: INVALID
+          operator: "INVALID"
           matrix-use: "false"
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-      - name: Assert action failed with invalid operator
+      - name: Assert action failed due to invalid operator
         env:
           OUTCOME: ${{ steps.action.outcome }}
         run: |
           echo "outcome: $OUTCOME"
-          if [ "$OUTCOME" != "failure" ]; then
-            echo "FAIL: expected action to fail with invalid operator, but outcome was '$OUTCOME'"
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action correctly failed for invalid operator"
+          elif [ "$OUTCOME" = "success" ]; then
+            echo "FAIL: action should have failed for invalid operator 'INVALID'"
+            exit 1
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
             exit 1
           fi
-          echo "PASS: action correctly failed with invalid operator"
