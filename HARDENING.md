@@ -16,7 +16,7 @@ Action **raven-actions--get-repos/v1.0.2** was hardened automatically. 1 finding
 
 ### unpinned-uses (severity: high)
 
-The composite action step uses `actions/github-script@v6`, which is pinned to a mutable version tag (`v6`) rather than an immutable 40-character commit SHA. This means the action could be silently updated or compromised without the consuming workflow noticing, enabling a supply-chain attack. It should be pinned to a full SHA, e.g. `actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v6`.
+The composite action uses `actions/github-script@v6`, which is pinned to a mutable version tag (`v6`) rather than an immutable 40-character commit SHA. This means the referenced action could be silently replaced with a different (potentially malicious) version without any change to this file, creating a supply-chain risk.
 
 Locations:
 
@@ -30,5 +30,5 @@ Locations:
 
 **Notes:**
 
-Pinned `actions/github-script@v6` to its full commit SHA `d7906e4ad0b1822421a7e6a35d5ca353c962f410` in hardened/action/action.yml (line 44). The mutable `v6` tag is preserved as a comment for readability.
+Pinned `actions/github-script@v6` to its full commit SHA `d7906e4ad0b1822421a7e6a35d5ca353c962f410` in `hardened/action/action.yml` (line 44). The original tag is preserved as an inline comment (`# v6`) for readability.
 
